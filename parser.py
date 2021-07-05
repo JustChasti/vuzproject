@@ -2,6 +2,8 @@ import requests
 import time
 import re
 from bs4 import BeautifulSoup
+import config
+import json
 
 
 HEADERS = {
@@ -10,7 +12,8 @@ HEADERS = {
 
 
 def parse_ozon(URL):
-    parsed_list = []
+    parsed = {}
+    parsed['url'] = URL
     response = requests.get(URL, headers=HEADERS)
     soup = BeautifulSoup(response.content, "html.parser")
     items = soup.find('div', {"class": "container b6e3"})
@@ -18,12 +21,20 @@ def parse_ozon(URL):
     for i in items:
         if k == 1:
             item = i.find('h1', {"class": "b3a8"})
-            parsed_list.append(item.text)
-            art = i.find('span', {"class": "b2d7 b2d9"}).text
+            parsed['Name'] = item.text
+            art1 = i.find('span', {"class": "b2d7 b2d9"}).text
             otz = i.find('a', {"class": "_1-6r _3UDF"})
-            k_otz = otz.find('div', {"class": "kxa6"}).text
-            parsed_list.append(art)
-            parsed_list.append(k_otz.replace(u'\xa0', u' '))
+            k_otz1 = otz.find('div', {"class": "kxa6"}).text
+            art = ''
+            for symb in art1:
+                if symb >= '0' and symb <= '9':
+                    art = art + symb
+            parsed['Art'] = art
+            k_otz = ''
+            for symb in k_otz1:
+                if symb >= '0' and symb <= '9':
+                    k_otz = k_otz + symb
+            parsed['Col_otz'] = k_otz
             k += 1
         elif k == 2:
             item = i.find('div', {"class": "b5y", 'style': 'max-width:370px;flex-basis:370px;'})
@@ -38,12 +49,16 @@ def parse_ozon(URL):
             item = i.find('span', {"class": "c2h5 c2h6"}).find('span')
             text = item.text
             text = text.replace(u'\xa0', u' ')
-            parsed_list.append(text)
+            price = ''
+            for symb in text:
+                if symb >= '0' and symb <= '9':
+                    price = price + symb
+            parsed['Price'] = price
         else:
             k += 1
     items = soup.find('a', {"class": "_1-6r _3UDF"})['href']
     rev = ozon_rev('https://www.ozon.ru' + items)
-    return parsed_list, rev
+    return parsed, rev
 
 
 def ozon_rev(link):
@@ -77,25 +92,30 @@ def ozon_rev(link):
 
 
 def parse_wb(URL):
+    parsed = {}
+    parsed['url'] = URL
     urlm = (URL.split('/'))
     urlm = urlm[:5]
     URL = ''
     for i in urlm:
         URL += i + '/'
     URL += 'otzyvy'
-    parsed_list = []
     response = requests.get(URL, headers=HEADERS)
     soup = BeautifulSoup(response.content, "html.parser")
     items = soup.find('div', {"class": "main__container"})
     name = items.find('meta', {"itemprop": "name"})
-    parsed_list.append(name['content'])
+    parsed['Name'] = name['content']
     item = items.find('div', {"class": "second-horizontal"})
     art = items.find('div', {"class": "article"})
-    parsed_list.append(art.find('span').text)
+    parsed["Art"] = art.find('span').text
     otz = item.find('i')
-    parsed_list.append(otz.text.replace(u'\n', u''))
+    k_otz = ''
+    for symb in otz:
+        if symb >= '0' and symb <= '9':
+            k_otz = k_otz + symb
+    parsed['Col_otz'] = k_otz[:len(k_otz)-1]
     price = items.find('meta', {"itemprop": "price"})['content']
-    parsed_list.append(price)
+    parsed["Price"] = price.split('.')[0]
     comentb = items.find('div', {"class": "comments"})
     coments = comentb.find_all('div', {"class": "comment j-b-comment"})
     rev_list = []
@@ -106,7 +126,7 @@ def parse_wb(URL):
         otz["Mark"] = stars
         otz["Com"] = com.find('p', {"itemprop": "reviewBody"}).text
         rev_list.append(otz)
-    return parsed_list, rev_list
+    return parsed, rev_list
 
 
 def switch(link):
@@ -117,10 +137,11 @@ def switch(link):
         return parse_ozon(link)
 
 if __name__ == "__main__":
-    print(switch('https://www.wildberries.ru/catalog/16023993/detail.aspx?targetUrl=XS'))
-    print(' ')
-    print(switch('https://www.wildberries.ru/catalog/8329114/detail.aspx'))
-    print(' ')
-    print(switch('https://www.ozon.ru/product/gornyy-velosiped-rush-hour-rx-905-29-2021-228058566/'))
-    print(' ')
-    print(switch('https://www.ozon.ru/product/stiralnyy-poroshok-ariel-automat-gornyy-rodnik-12-kg-146781707/?advert=nnCvZ5mOIHxZzRb5FsWWD6VOx4_lDpxyQBzX-orav4GuHvsSK89cr08roPHvz3pnWSwy-NxMmMBsgQGRs3OIPqzKcyhJqIEyRwJO2SsZHedUihWUJqF0Sg1PXobZgwMld9ShALgTI0eIORL0FuXW1mU1kg&hs=1'))
+    while True:
+        answer = requests.get(config.url + '/links/parse/', data=json.dumps({}), headers=config.headers).json()
+        for i in answer:
+            try:
+                requests.put(config.url + '/links/update/', data=json.dumps(switch(i['link'])), headers=config.headers)
+            except Exception as e:
+                print('ошибка парсинга ссылки:', i['link'])
+        time.sleep(config.delay)
