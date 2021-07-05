@@ -18,10 +18,7 @@ def send_urls():
 def get_parse_urls():
     """Get links from parser and update in base"""
     j_request = request.json
-    try:
-        db.update_link(j_request[0]['url'], j_request[0]['Name'], j_request[0]['Price'], j_request[0]['Art'], j_request[0]['Col_otz'], j_request[1])
-    except Exception as e:
-        print('неизвестный баг')
+    db.update_link(j_request[0]['url'], j_request[0]['Name'], j_request[0]['Price'], j_request[0]['Art'], j_request[0]['Col_otz'], j_request[1])
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 

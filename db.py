@@ -4,7 +4,6 @@ import create_base
 import psycopg2
 import config
 
-# для работы с базой
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
@@ -106,10 +105,9 @@ def get_links():
             urls.append(req)
         return urls
     except Exception as e:
-        return []  # there are no links in the database
+        return []
     session.close()
 
 
 if __name__ == "__main__":
-    #update_link('testlink1', 'test', 1, 900000000, 58, [{'Name': "Kot Gray", 'Mark': 5, 'Com': "Отличный тест"}])
     print(get_links())
