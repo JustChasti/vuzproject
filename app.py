@@ -30,5 +30,12 @@ def get_link():
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
+@app.route("/links/all/", methods=["GET"])
+def get_all():
+    """Add a new link to base"""
+    db.get_all()
+    return jsonify(db.get_all())
+
+
 if __name__ == "__main__":
     app.run(debug=True)

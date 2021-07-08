@@ -109,5 +109,23 @@ def get_links():
     session.close()
 
 
+def get_all():
+    session = Session()
+    try:
+        links = session.query(Link).all()
+        urls = []
+        for i in links:
+            req = {}
+            req['url'] = i.url
+            req['name'] = i.name
+            req['price'] = i.price
+            req['articul'] = i.articul
+            req['col_otz'] = i.col_otz
+            urls.append(req)
+        return urls
+    except Exception as e:
+        return []
+
+
 if __name__ == "__main__":
     print(get_links())
